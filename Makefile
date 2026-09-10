@@ -70,7 +70,7 @@ $(BUILD_DIR)/%.c.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 
-.PHONY: clean run
+.PHONY: clean server client
 clean:
 	rm -r $(BUILD_DIR)
 
