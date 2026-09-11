@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sqlite3.h>
+#include <string.h>
 #include "../shared/network.h"
 
 void insert(sqlite3* db, star_data data){
@@ -20,7 +21,75 @@ void insert(sqlite3* db, star_data data){
         }
 }
 
-void update(){
+int empty = TRUE;  //TODO: remove global var
+static int callback(void *data, int argc, char **argv, char **azColName){
+        empty = FALSE;
+        int i;
+        //fprintf(stderr, "%s: ", (const char*)data);
+        
+        for(i = 0; i<argc; i++)
+                printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+        
+        printf("\n");
+
+        star_data* star = (star_data*)data;
+        strcpy( star->nome, argv[1]);
+        star->massa        = atoi(argv[2]);
+        star->temperatura  = atoi(argv[3]);
+        star->luminosidade = atoi(argv[4]);
+        star->raio         = atoi(argv[5]);
+
+        return 0;
+}
+
+u8 db_select(sqlite3* db, u8 id, star_data* data){
+        char buffer[512];
+        snprintf(buffer, 512,"SELECT * from STARS where ID=%hhu;", id);
+        int rc;
+        char* zErrMsg = 0;
+
+        rc = sqlite3_exec(db, buffer, callback, data, &zErrMsg);
+
+        if( rc != SQLITE_OK ){
+                fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+        } else {
+                fprintf(stdout, "Records read successfully\n");
+        }
+
+        if(empty == TRUE){
+                return 0;
+        }
+        if(empty == FALSE){
+                empty = TRUE;
+                return 1;
+        }
+}
+
+void update(sqlite3* db, u8 id, star_data data){
+        char buffer[512];
+        snprintf(buffer, 512,"UPDATE STARS "\
+                             "SET "\
+                             "  NAME = '%s', "\
+                             "  MASS = %f, "\
+                             "  SURFACE_TEMPERATURE = %f, "\
+                             "  LUMINOSITY = %f, "\
+                             "  RADIUS = %f "\
+                             "WHERE ID = %hhu; " , data.nome, data.massa, data.temperatura, data.luminosidade, data.raio, id);
+
+        printf("%s\n\n", buffer);
+        int rc;
+        char* zErrMsg = 0;
+
+        rc = sqlite3_exec(db, buffer, NULL, 0, &zErrMsg);
+
+        if( rc != SQLITE_OK ){
+                fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+        } else {
+                fprintf(stdout, "Records created successfully\n");
+        }
+
 }
 
 void delete(sqlite3* db, u8 id){
@@ -106,6 +175,19 @@ int main(){
                                         puts("READ");
                                         read(connfd, &id, 1);
                                         printf("id: %d (%zu bytes)\n", id, sizeof(id));
+                                        u8 result = db_select(db, id, &data);
+                                        printf("result: %d\n\n", result);
+                                        if(result == 0)
+                                                send(connfd, &result, sizeof(result), 0);
+                                        if(result == 1){
+                                                int message_size = sizeof(op) + sizeof(data);
+                                                char* message = (char*)malloc(message_size);
+                                                memcpy(message, &result, sizeof(result));
+                                                memcpy(message+sizeof(result), &data, sizeof(data));
+
+                                                send(connfd, message, message_size, 0);
+                                                free(message);
+                                        }
                                         break;
                                 case 'U':
                                 case 'u':
@@ -114,6 +196,7 @@ int main(){
                                         printf("id: %d (%zu bytes)\n", id, sizeof(id));
                                         read(connfd, &data, sizeof(star_data));
                                         print_stardata(data);
+                                        update(db, id, data);
                                         break;
                                 case 'D':
                                 case 'd':

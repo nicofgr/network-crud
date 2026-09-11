@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-#define PORT 8082
+#define PORT 8080
 #define TRUE  1
 #define FALSE 0
 #define u8 uint8_t

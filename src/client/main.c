@@ -53,13 +53,11 @@ int main(){
                                 puts("Digite o raio da estrela:");
                                 scanf("%f", &data.raio);
 
-                                message_size = sizeof(op) + sizeof(star_data);
+                                message_size = sizeof(op) + sizeof(data);
                                 message = (char*)malloc(message_size);
                                 memcpy(message, &op, sizeof(op));
-                                memcpy(message+sizeof(op), &data, message_size);
-                                printf("%s\n", message);
+                                memcpy(message+sizeof(op), &data, sizeof(data));
 
-                                //send(connfd, &op, sizeof(op), 0);
                                 send(connfd, message, message_size, 0);
                                 free(message);
                                 break;
@@ -74,6 +72,17 @@ int main(){
                                 memcpy(message+sizeof(op), &id, sizeof(id));
                                 send(connfd, message, message_size, 0);
                                 free(message);
+                                
+                                u8 result;
+                                read(connfd, &result, sizeof(result));
+                                if(result == 1){
+                                        printf("Dados encontrados\n");
+                                        read(connfd, &data, sizeof(data));
+                                        print_stardata(data);
+                                }
+                                if(result == 0)
+                                        printf("Dados não encontrados\n");
+
                                 break;
                         case 'U':
                         case 'u':
