@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "./network.h"
+
 
 #define print_check(fmt, ...) printf("\033[32m ✓\033[0m " fmt "\n", ##__VA_ARGS__)
 
@@ -81,4 +83,12 @@ void connect_to_server(int sockfd, int port){
                 exit(0);
         }
         print_check("Connected to server sucessfully.");
+}
+
+void print_stardata(const star_data data){
+        printf("Nome: %s\n"
+               "Massa %f\n"
+               "Temperatura %f\n"
+               "Luminosidade %f\n"
+               "Raio %f\n", data.nome, data.massa, data.temperatura, data.luminosidade, data.raio);
 }
